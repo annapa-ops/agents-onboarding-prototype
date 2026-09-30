@@ -1,15 +1,10 @@
+import { useState } from "react";
+import { Button, Icon } from "@vibe/core";
 import {
-  useCallback,
-  useEffect,
-  useRef,
-  useState,
-  type CSSProperties,
-  type UIEvent,
-} from "react";
-import { IconButton } from "@vibe/core";
-import {
-  DropdownChevronLeft,
-  DropdownChevronRight,
+  AIColored,
+  MoveArrowRight,
+  NavigationChevronLeft,
+  NavigationChevronRight,
 } from "@mondaydotcomorg/icons";
 import { MondayMulticolorMark } from "./ProductLogos";
 import {
@@ -19,65 +14,6 @@ import {
 import type { AgentFlowId } from "../data/agentFlows";
 import styles from "./GeneralAgentSelectionPage.module.scss";
 
-const SCROLL_EDGE_PX = 16;
-const VISIBLE_CARDS = 3;
-const CARD_GAP_PX = 24;
-
-function getCardElements(scroller: HTMLDivElement): HTMLElement[] {
-  const row = scroller.firstElementChild;
-  if (!row) return [];
-  return Array.from(row.children).filter(
-    (child): child is HTMLElement => child instanceof HTMLElement,
-  );
-}
-
-function getMaxScroll(scroller: HTMLDivElement): number {
-  return Math.max(0, scroller.scrollWidth - scroller.clientWidth);
-}
-
-function getCardStep(scroller: HTMLDivElement): number {
-  const cards = getCardElements(scroller);
-  const card = cards[0];
-  if (!card) return 0;
-
-  const row = scroller.firstElementChild;
-  const gap =
-    row instanceof HTMLElement
-      ? Number.parseFloat(window.getComputedStyle(row).gap) || CARD_GAP_PX
-      : 40;
-  return card.offsetWidth + gap;
-}
-
-function getActiveCardIndex(
-  scroller: HTMLDivElement | null,
-  cardCount: number,
-): number {
-  if (!scroller || cardCount <= 1) return 0;
-
-  const maxScroll = getMaxScroll(scroller);
-  if (scroller.scrollLeft <= SCROLL_EDGE_PX) return 0;
-  if (maxScroll > 0 && scroller.scrollLeft >= maxScroll - SCROLL_EDGE_PX) {
-    return cardCount - 1;
-  }
-
-  const viewport = scroller.getBoundingClientRect();
-  const viewportCenter = viewport.left + viewport.width / 2;
-  let closestIndex = 0;
-  let closestDistance = Number.POSITIVE_INFINITY;
-
-  getCardElements(scroller).forEach((child, index) => {
-    const childRect = child.getBoundingClientRect();
-    const childCenter = childRect.left + childRect.width / 2;
-    const distance = Math.abs(childCenter - viewportCenter);
-    if (distance < closestDistance) {
-      closestDistance = distance;
-      closestIndex = index;
-    }
-  });
-
-  return closestIndex;
-}
-
 function SolutionCard({
   card,
   onSelect,
@@ -86,26 +22,40 @@ function SolutionCard({
   onSelect: (card: GeneralSolutionCard) => void;
 }) {
   return (
-    <button
-      type="button"
-      className={styles.solutionCard}
-      onClick={() => onSelect(card)}
-    >
+    <article className={styles.solutionCard}>
       <div className={styles.solutionPreview}>
         <img className={styles.solutionImage} src={card.image} alt="" />
       </div>
       <div className={styles.solutionBody}>
-        <h2 className={styles.solutionTitle}>{card.title}</h2>
-        <ol className={styles.solutionBullets}>
-          {card.bullets.map((bullet, index) => (
-            <li key={bullet}>
-              <span className={styles.bulletIndex}>{index + 1}</span>
-              {bullet}
-            </li>
-          ))}
-        </ol>
+        <div className={styles.solutionCopy}>
+          <h2 className={styles.solutionTitle}>{card.title}</h2>
+          <div className={styles.tagRow}>
+            {card.tags.map((tag) => (
+              <span key={tag.label} className={styles.tag}>
+                {tag.withAi ? (
+                  <span className={styles.tagAiIcon} aria-hidden="true">
+                    <AIColored size={16} />
+                  </span>
+                ) : null}
+                {tag.label}
+              </span>
+            ))}
+          </div>
+          <p className={styles.solutionSummary}>{card.summary}</p>
+        </div>
+        <div className={styles.solutionCta}>
+          <Button
+            kind="primary"
+            color="fixed-dark"
+            size="large"
+            rightIcon={MoveArrowRight}
+            onClick={() => onSelect(card)}
+          >
+            Get started
+          </Button>
+        </div>
       </div>
-    </button>
+    </article>
   );
 }
 
@@ -123,76 +73,21 @@ export function GeneralAgentSelectionPage({
   embedded?: boolean;
 }) {
   const cards = getSolutionCardsForFocus(focusId);
-  const viewportRef = useRef<HTMLDivElement>(null);
-  const cardRowRef = useRef<HTMLDivElement>(null);
-  const [cardWidth, setCardWidth] = useState<number | null>(null);
   const [activeIndex, setActiveIndex] = useState(0);
-  const [canScrollLeft, setCanScrollLeft] = useState(false);
-  const [canScrollRight, setCanScrollRight] = useState(cards.length > 3);
-
-  const updateScrollState = useCallback(
-    (scroller: HTMLDivElement) => {
-      const nextIndex = getActiveCardIndex(scroller, cards.length);
-      const maxScroll = getMaxScroll(scroller);
-
-      setActiveIndex((prev) => (prev === nextIndex ? prev : nextIndex));
-      setCanScrollLeft(scroller.scrollLeft > SCROLL_EDGE_PX);
-      setCanScrollRight(scroller.scrollLeft < maxScroll - SCROLL_EDGE_PX);
-    },
-    [cards.length],
-  );
-
-  useEffect(() => {
-    const viewport = viewportRef.current;
-    const scroller = cardRowRef.current;
-    if (!viewport || !scroller) return;
-
-    const measure = () => {
-      const gap =
-        window.matchMedia("(max-width: 960px)").matches ? 16 : CARD_GAP_PX;
-      const nextWidth = Math.floor(
-        (viewport.clientWidth - gap * (VISIBLE_CARDS - 1)) / VISIBLE_CARDS,
-      );
-      setCardWidth((prev) => (prev === nextWidth ? prev : nextWidth));
-      updateScrollState(scroller);
-    };
-    measure();
-    const frame = window.requestAnimationFrame(measure);
-
-    const observer = new ResizeObserver(measure);
-    observer.observe(viewport);
-    observer.observe(scroller);
-
-    return () => {
-      window.cancelAnimationFrame(frame);
-      observer.disconnect();
-    };
-  }, [updateScrollState]);
+  const activeCard = cards[activeIndex] ?? cards[0];
+  const canGoPrev = activeIndex > 0;
+  const canGoNext = activeIndex < cards.length - 1;
 
   const handleCardSelect = (card: GeneralSolutionCard) => {
     onSelectAgent(card.flowId, card);
   };
 
-  const handleCardRowScroll = (event: UIEvent<HTMLDivElement>) => {
-    updateScrollState(event.currentTarget);
+  const goTo = (index: number) => {
+    if (index < 0 || index >= cards.length || index === activeIndex) return;
+    setActiveIndex(index);
   };
 
-  const scrollByCard = (direction: -1 | 1) => {
-    const scroller = cardRowRef.current;
-    if (!scroller) return;
-
-    const maxScroll = getMaxScroll(scroller);
-    if (maxScroll <= 0) return;
-
-    const step = getCardStep(scroller);
-    const nextLeft = Math.max(
-      0,
-      Math.min(maxScroll, scroller.scrollLeft + direction * step),
-    );
-    if (Math.abs(nextLeft - scroller.scrollLeft) < 1) return;
-
-    scroller.scrollTo({ left: nextLeft, behavior: "smooth" });
-  };
+  if (!activeCard) return null;
 
   return (
     <div className={embedded ? styles.embeddedPage : styles.page}>
@@ -204,66 +99,90 @@ export function GeneralAgentSelectionPage({
           <h1 className={styles.title}>Choose the right solution for you</h1>
         </div>
 
-        <div className={styles.cardStrip}>
-          <IconButton
-            className={`${styles.edgeButton} ${styles.edgeButtonLeft}`}
-            icon={DropdownChevronLeft}
-            kind="tertiary"
-            size="medium"
-            aria-label="Previous solutions"
-            disabled={!canScrollLeft}
-            onClick={() => scrollByCard(-1)}
-          />
+        <div className={styles.tabRow} role="tablist" aria-label="Solutions">
+          {cards.map((card, index) => {
+            const isActive = index === activeIndex;
+            return (
+              <button
+                key={card.id}
+                type="button"
+                role="tab"
+                aria-selected={isActive}
+                className={
+                  isActive ? `${styles.tab} ${styles.tabActive}` : styles.tab
+                }
+                onClick={() => goTo(index)}
+              >
+                {card.title}
+              </button>
+            );
+          })}
+        </div>
 
-          <div
-            ref={viewportRef}
-            className={styles.cardViewport}
-            style={
-              cardWidth
-                ? ({
-                    "--solution-card-width": `${cardWidth}px`,
-                  } as CSSProperties)
-                : undefined
-            }
-          >
+        <div className={styles.stage}>
+          <div className={styles.stageInner}>
             <div
-              ref={cardRowRef}
-              className={styles.cardScroller}
-              onScroll={handleCardRowScroll}
-            >
-              <div className={styles.cardRow}>
-                {cards.map((card) => (
-                  <SolutionCard
-                    key={card.id}
-                    card={card}
-                    onSelect={handleCardSelect}
-                  />
-                ))}
-              </div>
-            </div>
-          </div>
+              className={
+                canGoPrev
+                  ? `${styles.peekCard} ${styles.peekCardLeft}`
+                  : `${styles.peekCard} ${styles.peekCardLeft} ${styles.peekCardHidden}`
+              }
+              aria-hidden="true"
+            />
+            <div
+              className={
+                canGoNext
+                  ? `${styles.peekCard} ${styles.peekCardRight}`
+                  : `${styles.peekCard} ${styles.peekCardRight} ${styles.peekCardHidden}`
+              }
+              aria-hidden="true"
+            />
 
-          <IconButton
-            className={`${styles.edgeButton} ${styles.edgeButtonRight}`}
-            icon={DropdownChevronRight}
-            kind="tertiary"
-            size="medium"
-            aria-label="Next solutions"
-            disabled={!canScrollRight}
-            onClick={() => scrollByCard(1)}
-          />
+            <div className={styles.cardStack}>
+              <SolutionCard
+                key={activeCard.id}
+                card={activeCard}
+                onSelect={handleCardSelect}
+              />
+            </div>
+
+            {canGoPrev ? (
+              <button
+                type="button"
+                className={`${styles.edgeButton} ${styles.edgeButtonLeft}`}
+                aria-label="Previous solution"
+                onClick={() => goTo(activeIndex - 1)}
+              >
+                <Icon icon={NavigationChevronLeft} size={20} />
+              </button>
+            ) : null}
+
+            {canGoNext ? (
+              <button
+                type="button"
+                className={`${styles.edgeButton} ${styles.edgeButtonRight}`}
+                aria-label="Next solution"
+                onClick={() => goTo(activeIndex + 1)}
+              >
+                <Icon icon={NavigationChevronRight} size={20} />
+              </button>
+            ) : null}
+          </div>
         </div>
 
         <div className={styles.carouselNav}>
-          <div className={styles.dots} aria-hidden="true">
+          <div className={styles.dots}>
             {cards.map((card, index) => (
-              <span
+              <button
                 key={card.id}
+                type="button"
                 className={
                   index === activeIndex
                     ? `${styles.dot} ${styles.dotActive}`
                     : styles.dot
                 }
+                aria-label={`Show ${card.title}`}
+                onClick={() => goTo(index)}
               />
             ))}
           </div>
@@ -271,13 +190,14 @@ export function GeneralAgentSelectionPage({
 
         <div className={styles.galleryPrompt}>
           <span>None of these quite fit?</span>
-          <button
-            type="button"
+          <Button
+            kind="secondary"
+            size="large"
             className={styles.galleryButton}
             onClick={onStartFromScratch}
           >
             Start from scratch
-          </button>
+          </Button>
         </div>
       </div>
     </div>

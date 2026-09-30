@@ -1,9 +1,9 @@
 import focusDefaultVisual from "../assets/packaged-onboarding/focus-default.png";
 import focusSalesVisual from "../assets/packaged-onboarding/focus-sales.png";
 import focusPeopleVisual from "../assets/packaged-onboarding/focus-people.png";
-import solutionOnboardingImage from "../assets/packaged-onboarding/solution-onboarding.png";
-import solutionRecruitmentImage from "../assets/packaged-onboarding/solution-recruitment.png";
-import solutionDirectoryImage from "../assets/packaged-onboarding/solution-directory.png";
+import solutionTrackTasksImage from "../assets/packaged-onboarding/solution-track-tasks.png";
+import solutionProjectOnTrackImage from "../assets/packaged-onboarding/solution-project-on-track.png";
+import solutionDependenciesTimelinesImage from "../assets/packaged-onboarding/solution-dependencies-timelines.png";
 import type { AgentFlowId } from "./agentFlows";
 
 export interface GeneralFocusOption {
@@ -13,10 +13,16 @@ export interface GeneralFocusOption {
   fullWidth?: boolean;
 }
 
+export interface GeneralSolutionTag {
+  label: string;
+  withAi?: boolean;
+}
+
 export interface GeneralSolutionCard {
   id: string;
   title: string;
-  bullets: readonly string[];
+  tags: readonly GeneralSolutionTag[];
+  summary: string;
   image: string;
   agentName: string;
   agentRole: string;
@@ -98,78 +104,63 @@ export const GENERAL_FOCUS_OPTIONS: readonly GeneralFocusOption[] = [
 
 export const HR_SOLUTION_CARDS: readonly GeneralSolutionCard[] = [
   {
-    id: "employee-onboarding",
-    title: "New Employee Onboarding",
-    bullets: [
-      "Manage every new hire's onboarding schedule",
-      "Create onboarding programs automatically with AI",
-      "Track every new hire's progress to completion",
+    id: "track-teams-tasks",
+    title: "Track teams tasks",
+    tags: [
+      { label: "Board with sample tasks" },
+      { label: "Clear ownership" },
+      { label: "Track status" },
+      { label: "Priority rating" },
+      { label: "AI Task Summary", withAi: true },
+      { label: "AI Risk Level", withAi: true },
     ],
-    image: solutionOnboardingImage,
-    agentName: "Max",
-    agentRole: "Recruitment agent",
+    summary:
+      "A board built around your team's workflow, with tasks organised by stage, owner, and priority. Automations move items forward as work progresses, and AI keeps you updated with task summaries and risk scores.",
+    image: solutionTrackTasksImage,
+    agentName: "Liam",
+    agentRole: "Project Manager",
     description:
-      "Sets up a new-hire plan, owners, and a day-one schedule so nobody starts lost.",
+      "Sets up a board around your team's workflow so tasks stay organized by stage, owner, and priority.",
     flowId: "jade",
   },
   {
-    id: "recruitment-management",
-    title: "Recruitment Management",
-    bullets: [
-      "Track open roles & candidates in one place",
-      "Source candidates automatically with AI",
-      "Auto-transcribe every interview",
+    id: "project-on-track",
+    title: "Keep every project on track",
+    tags: [
+      { label: "Task breakdown" },
+      { label: "Effort tracking" },
+      { label: "Dependency tracking" },
+      { label: "Priority rating" },
+      { label: "AI Task Summary", withAi: true },
+      { label: "AI Risk Level", withAi: true },
     ],
-    image: solutionRecruitmentImage,
-    agentName: "Max",
-    agentRole: "Recruitment agent",
+    summary:
+      "A board built for running one project end-to-end, with tasks organized by phase, owner, and priority, and broken into subtasks. Automations track completion and flag missed deadlines, and AI keeps you updated with activity summaries and risk scores.",
+    image: solutionProjectOnTrackImage,
+    agentName: "Dave",
+    agentRole: "Project Risk Analyzer",
     description:
-      "Keeps the hiring pipeline moving — screening applicants and booking interviews.",
+      "Sets up an end-to-end project board with phases, owners, priorities, and subtasks.",
     flowId: "jade",
   },
   {
-    id: "employee-directory",
-    title: "Employee Directory",
-    bullets: [
-      "Manage your employee directory in one place",
-      "Build & Publish org charts",
-      "Find the right person, skill, or location instantly",
+    id: "dependencies-and-timelines",
+    title: "Map dependencies and timelines",
+    tags: [
+      { label: "Phase-based planning" },
+      { label: "Dependency mapping" },
+      { label: "Effort estimates" },
+      { label: "Project brief" },
+      { label: "Progress tracking" },
+      { label: "AI Dependency Suggestion", withAi: true },
     ],
-    image: solutionDirectoryImage,
-    agentName: "Max",
-    agentRole: "Employee manager",
+    summary:
+      "A board built for planning work before it starts, with tasks organized by phase, dependency, and effort estimate. Automations flag work as soon as it's unblocked and roll up progress automatically, and AI suggests how your tasks depend on each other.",
+    image: solutionDependenciesTimelinesImage,
+    agentName: "Blake",
+    agentRole: "Roadmap Builder",
     description:
-      "Keep all employee information and documents centralized in one place. With a dashboard, get an extensive employee breakdown with headcount by department, location and more.",
-    flowId: "jade",
-  },
-  {
-    id: "time-off",
-    title: "Time off & attendance",
-    bullets: [
-      "Time-off request board",
-      "HR agent — Max",
-      "Balances, approvals, and coverage",
-    ],
-    image: solutionOnboardingImage,
-    agentName: "Max",
-    agentRole: "Recruitment agent",
-    description:
-      "Tracks time-off requests, balances, and coverage so approvals stay visible.",
-    flowId: "jade",
-  },
-  {
-    id: "performance-reviews",
-    title: "Performance reviews",
-    bullets: [
-      "Review cycle board",
-      "HR agent — Max",
-      "Goals, feedback, and ratings",
-    ],
-    image: solutionRecruitmentImage,
-    agentName: "Max",
-    agentRole: "Recruitment agent",
-    description:
-      "Runs review cycles with goals, feedback, and ratings in one shared board.",
+      "Sets up a roadmap board organized by phase, dependencies, and effort estimates.",
     flowId: "jade",
   },
 ];
